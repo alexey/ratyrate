@@ -8,7 +8,7 @@ module Ratyrate
     if can_rate? user, dimension
       rates(dimension).create! do |r|
         r.stars = stars
-        r.rater = user
+        r.user_id = user.id
       end
       if dirichlet_method
         update_rate_average_dirichlet(stars, dimension)
@@ -50,7 +50,7 @@ module Ratyrate
   end
 
   def update_current_rate(stars, user, dimension)
-    current_rate = rates(dimension).where(rater_id: user.id).take
+    current_rate = rates(dimension).where(user_id: user.id).take
     current_rate.stars = stars
     current_rate.save!(validate: false)
 
@@ -63,7 +63,7 @@ module Ratyrate
     end
   end
 
-  def overall_avg(user)
+  def avg_score(user)
     # avg = OverallAverage.where(rateable_id: self.id)
     # #FIXME: Fix the bug when the movie has no ratings
     # unless avg.empty?
@@ -76,13 +76,13 @@ module Ratyrate
     #       overall_score = overall_score + average(d.dimension).avg
     #     end
     #   end
-    #   overall_avg = (overall_score / dimensions_count).to_f.round(1)
+    #   avg_score = (overall_score / dimensions_count).to_f.round(1)
     #   AverageCache.create! do |a|
-    #     a.rater_id = user.id
+    #     a.user_id = user.id
     #     a.rateable_id = self.id
-    #     a.avg = overall_avg
+    #     a.avg = avg_score
     #   end
-    #   overall_avg
+    #   avg_score
     # end
   end
 
@@ -101,7 +101,7 @@ module Ratyrate
   end
 
   def can_rate?(user, dimension=nil)
-    rates(dimension).where(rater_id: user.id).size.zero?
+    rates(dimension).where(user_id: user.id).size.zero?
   end
 
   def rates(dimension=nil)
@@ -115,12 +115,12 @@ module Ratyrate
   module ClassMethods
 
     def ratyrate_rater
-      has_many :ratings_given, class_name: 'Rate', foreign_key: :rater_id
+      has_many :ratings_given, class_name: 'Rate', foreign_key: :user_id
     end
 
     def ratyrate_rateable(*dimensions)
       has_many :rates_without_dimension, -> { where dimension: nil}, as: :rateable, class_name: 'Rate', dependent: :destroy
-      has_many :raters_without_dimension, through: :rates_without_dimension, source: :rater
+      has_many :raters_without_dimension, through: :rates_without_dimension, source: :user
 
       has_one :rate_average_without_dimension, -> { where dimension: nil}, as: :cacheable,
               class_name: 'RatingCache', dependent: :destroy
@@ -131,7 +131,7 @@ module Ratyrate
                                               class_name: 'Rate',
                                               as: :rateable
 
-        has_many "#{dimension}_raters".to_sym, through: :"#{dimension}_rates", source: :rater
+        has_many "#{dimension}_raters".to_sym, through: :"#{dimension}_rates", source: :user
 
         has_one "#{dimension}_average".to_sym, -> { where dimension: dimension.to_s },
                                               as: :cacheable, 

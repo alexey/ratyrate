@@ -73,17 +73,18 @@ module Helpers
 
   def imdb_style_rating_for(rateable_obj, user, options = {})
     #TODO: add option to change the star icon
-    overall_avg = rateable_obj.overall_avg(user)
+    avg_score = rateable_obj.avg_score(user)
 
     content_tag :div, '', :style => "background-image:url('#{image_path('big-star.png')}');width:81px;height:81px;margin-top:10px;" do
-        content_tag :p, overall_avg, :style => "position:relative;line-height:85px;text-align:center;"
+        content_tag :p, avg_score, :style => "position:relative;line-height:85px;text-align:center;"
     end
   end
 
   def rating_for_user(rateable_obj, rating_user, dimension = nil, options = {})
     @object = rateable_obj
     @user   = rating_user
-	  @rating = Rate.find_by_rater_id_and_rateable_id_and_dimension(@user.id, @object.id, dimension)
+    @rating = Rate.where(user_id: @user.id, rateable_id: @object.id, dimension: dimension).first
+
 	  stars = @rating ? @rating.stars : 0
 
     star         = options[:star]         || 5
